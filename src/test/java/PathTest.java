@@ -47,11 +47,12 @@ public class PathTest {
 				// Anew DifferentialDriveKinematics(20)pply the voltage constraint
 				.addConstraint(autoVoltageConstraint);
 
+		Pose2d start = new Pose2d(0,0, new Rotation2d(0));
+		List<Translation2d> waypoints = List.of(new Translation2d(1, 1), new Translation2d(2, -1));
+		Pose2d end = new Pose2d(3,0, new Rotation2d(0));
+
 		Trajectory example = TrajectoryGenerator.generateTrajectory(
-			new Pose2d(0,0, new Rotation2d(0)),
-			List.of(new Translation2d(1, 1), new Translation2d(2, -1)),
-			new Pose2d(3,0, new Rotation2d(0)),
-			config
+			start, waypoints, end, config
 		);
 		// assertEquals(Utils.deadband(1, .5), 1, kEpsilon);
 		// assertEquals(Utils.deadband(0.5, .1), 0.4444444, kEpsilon);
