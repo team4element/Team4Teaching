@@ -6,7 +6,6 @@ import edu.wpi.first.math.geometry.Rotation2d;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Assertions.*;
 
  class Translation2d {
 	// Private Variables here
