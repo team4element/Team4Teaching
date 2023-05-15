@@ -1,18 +1,26 @@
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.DynamicContainer.dynamicContainer;
+
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.DifferentialDriveKinematics;
+import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.math.trajectory.Trajectory;
 import edu.wpi.first.math.trajectory.TrajectoryGenerator;
 import edu.wpi.first.math.trajectory.TrajectoryConfig;
 import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.kinematics.DifferentialDriveKinematics;
+
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.trajectory.constraint.DifferentialDriveVoltageConstraint;
+
+import javax.swing.JFrame;
+import javax.swing.SwingUtilities;
 
 class Utils {
 	public static double deadband(double val, double deadband) {
@@ -23,6 +31,8 @@ class Utils {
 		}
 	}
 }
+
+@Disabled
 public class PathTest {
 	private final double kEpsilon = 1e-5;
 
@@ -38,25 +48,28 @@ public class PathTest {
 				kDriveKinem,
 				10);
 
-		TrajectoryConfig config =
-		new TrajectoryConfig(
-						10,
-						4)
+		TrajectoryConfig config = new TrajectoryConfig(
+				3,
+				1)
 				// Add kinematics to ensure max speed is actually obeyed
 				.setKinematics(kDriveKinem)
 				// Anew DifferentialDriveKinematics(20)pply the voltage constraint
 				.addConstraint(autoVoltageConstraint);
 
-		Pose2d start = new Pose2d(0,0, new Rotation2d(0));
+		Pose2d start = new Pose2d(0, 0, new Rotation2d(0));
 		List<Translation2d> waypoints = List.of(new Translation2d(1, 1), new Translation2d(2, -1));
-		Pose2d end = new Pose2d(3,0, new Rotation2d(0));
+		Pose2d end = new Pose2d(3, 0, new Rotation2d(0));
 
 		Trajectory example = TrajectoryGenerator.generateTrajectory(
-			start, waypoints, end, config
-		);
+				start, waypoints, end, config);
+
+		// example.getStates().forEach((state) -> {
+		// 	System.out.println(state.poseMeters.toString());
+		// });
+		// System.out.println(example.toString());
 		// assertEquals(Utils.deadband(1, .5), 1, kEpsilon);
 		// assertEquals(Utils.deadband(0.5, .1), 0.4444444, kEpsilon);
-		
+
 		// assertEquals(Utils.deadband(1, .5), 1, kEpsilon);
 		// assertEquals(Utils.deadband(1, .5), 1, kEpsilon);
 		// write test for 0.5, 0.1

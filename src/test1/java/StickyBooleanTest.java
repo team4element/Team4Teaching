@@ -1,5 +1,6 @@
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
+import edu.wpi.first.math.geometry.Translation2d;
 
 // The following code tests the concept of a sticky boolean, which is a boolean value that remains true once it has been set to true, regardless of future updates to false.
 
@@ -68,6 +69,16 @@ public class StickyBooleanTest {
 		sticky.reset();
 		assertFalse(sticky.get());
 		assertFalse(sticky.update(false));
+	}
+
+	@Test
+	public void testTranslation() {
+		Translation2d translation = new Translation2d(1, 2);
+		Translation2d translation2 = new Translation2d(1, 2);
+
+		Translation2d translation3 = translation.plus(translation2);
+		System.out.println(translation3);
+		assertEquals(translation, translation2);
 	}
 	
 }

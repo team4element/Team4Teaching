@@ -2,6 +2,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 
+import edu.wpi.first.math.filter.SlewRateLimiter;
+import edu.wpi.first.util.datalog.DataLog;
+import edu.wpi.first.util.datalog.StringLogEntry;
+import edu.wpi.first.wpilibj.DataLogManager;
+
 /**
  * A rotation in a 2D coordinate frame represented by a point on the unit circle (cosine and sine).
  *
@@ -201,6 +206,15 @@ class Rotation2d {
 
 @Disabled
 public class Rotation2dTest {
+
+	@Test
+	public void log() {
+		DataLogManager.start();
+
+		DataLog log = DataLogManager.getLog();
+		StringLogEntry stringLog = new StringLogEntry(log, "/string");
+		stringLog.append("Hello!");
+	}
 	
 	@Test
 	public void fromRadians() {
