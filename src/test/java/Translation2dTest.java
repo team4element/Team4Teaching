@@ -6,9 +6,12 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+// import edu.wpi.first.magcth.geometry.Translation2d;
 
 class Translation2d {
 	// Private Variables here
+	private double m_x;
+	private double m_y;
 
 	/** Constructs a Translation2d with X and Y components equal to zero. */
 	public Translation2d() {
@@ -23,6 +26,8 @@ class Translation2d {
 	 * @param y The y component of the translation.
 	 */
 	public Translation2d(double x, double y) {
+		m_x = x;
+		m_y = y;
 	}
 
 	/**
@@ -46,7 +51,10 @@ class Translation2d {
 	 * @return The distance between the two translations.
 	 */
 	public double getDistance(Translation2d other) {
-		return 0;
+		double dx = other.getX() - m_x;
+		double dy = other.getY() - m_y;
+
+		return Math.sqrt(dx * dx + dy * dy);
 	}
 
 	/**
@@ -55,7 +63,7 @@ class Translation2d {
 	 * @return The X component of the translation.
 	 */
 	public double getX() {
-		return 0;
+		return m_x;
 	}
 
 	/**
@@ -64,7 +72,7 @@ class Translation2d {
 	 * @return The Y component of the translation.
 	 */
 	public double getY() {
-		return 0;
+		return m_y;
 	}
 
 	/**
@@ -73,7 +81,7 @@ class Translation2d {
 	 * @return The norm of the translation.
 	 */
 	public double getNorm() {
-		return 0;
+		return getDistance(new Translation2d());
 	}
 
 	/**
@@ -121,7 +129,10 @@ class Translation2d {
 	 * @return The sum of the translations.
 	 */
 	public Translation2d plus(Translation2d other) {
-		return new Translation2d();
+		return new Translation2d(
+			m_x + other.getX(),
+			m_y + other.getY()
+		);
 	}
 
 	/**
@@ -135,7 +146,7 @@ class Translation2d {
 	 * @return The difference between the two translations.
 	 */
 	public Translation2d minus(Translation2d other) {
-		return new Translation2d();
+		return plus(other.times(-1.0));
 	}
 
 	/**
@@ -147,7 +158,7 @@ class Translation2d {
 	 * @return The inverse of the current translation.
 	 */
 	public Translation2d unaryMinus() {
-		return new Translation2d();
+		return times(-1.0);
 	}
 
 	/**
@@ -160,7 +171,10 @@ class Translation2d {
 	 * @return The scaled translation.
 	 */
 	public Translation2d times(double scalar) {
-		return new Translation2d();
+		return new Translation2d(
+			m_x * scalar,
+			m_y * scalar
+		);
 	}
 
 	/**
@@ -173,7 +187,7 @@ class Translation2d {
 	 * @return The reference to the new mutated object.
 	 */
 	public Translation2d div(double scalar) {
-		return new Translation2d();
+		return times( 1.0 / scalar);
 	}
 
 	/**
@@ -190,6 +204,15 @@ class Translation2d {
 	public String toString() {
 		return String.format("Translation2d(X: %.2f, Y: %.2f)", 0, 0);
 	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (obj instanceof Translation2d) {
+			Translation2d other = (Translation2d) obj;
+			return Math.abs(m_x - other.getX()) < 1e-9 && Math.abs(m_y - other.getY()) < 1e-9;
+		}
+		return false;
+	}
 }
 
 public class Translation2dTest {
@@ -197,29 +220,25 @@ public class Translation2dTest {
 	double kEpsilon = 1e-5;
 
 	@Test
-	@Disabled
 	public void testGetDistance() {
-		Translation2d t1 = new Translation2d(0, 0);
-		Translation2d t2 = new Translation2d(1, 1);
+		Translation2d t1 = new Translation2d(1, 1);
+		Translation2d t2 = new Translation2d(2, 2);
 		Assertions.assertEquals(Math.sqrt(2), t1.getDistance(t2), kEpsilon);
 	}
 
 	@Test
-	@Disabled
 	public void testGetX() {
 		Translation2d t1 = new Translation2d(1, 2);
 		Assertions.assertEquals(1, t1.getX(), kEpsilon);
 	}
 
 	@Test
-	@Disabled
 	public void testGetY() {
 		Translation2d t1 = new Translation2d(1, 2);
 		Assertions.assertEquals(2, t1.getY(), kEpsilon);
 	}
 
 	@Test
-	@Disabled
 	public void testGetNorm() {
 		Translation2d t1 = new Translation2d(3, 4);
 		Assertions.assertEquals(5, t1.getNorm(), kEpsilon);
@@ -240,15 +259,14 @@ public class Translation2dTest {
 	}
 
 	@Test
-	@Disabled
 	public void testPlus() {
 		Translation2d t1 = new Translation2d(1, 2);
 		Translation2d t2 = new Translation2d(3, 4);
+
 		Assertions.assertEquals(new Translation2d(4, 6), t1.plus(t2));
 	}
 
 	@Test
-	@Disabled
 	public void testMinus() {
 		Translation2d t1 = new Translation2d(1, 2);
 		Translation2d t2 = new Translation2d(3, 4);
@@ -256,21 +274,18 @@ public class Translation2dTest {
 	}
 
 	@Test
-	@Disabled
 	public void testUnaryMinus() {
 		Translation2d t1 = new Translation2d(1, 2);
 		Assertions.assertEquals(new Translation2d(-1, -2), t1.unaryMinus());
 	}
 
 	@Test
-	@Disabled
 	public void testTimes() {
 		Translation2d t1 = new Translation2d(1, 2);
 		Assertions.assertEquals(new Translation2d(2, 4), t1.times(2));
 	}
 
 	@Test
-	@Disabled
 	public void testDiv() {
 		Translation2d t1 = new Translation2d(2, 4);
 		Assertions.assertEquals(new Translation2d(1, 2), t1.div(2));
