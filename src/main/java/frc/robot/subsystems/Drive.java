@@ -9,7 +9,6 @@ import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.motorcontrol.MotorControllerGroup;
-import edu.wpi.first.wpilibj.motorcontrol.PWMSparkMax;
 import edu.wpi.first.wpilibj.simulation.ADXRS450_GyroSim;
 import edu.wpi.first.wpilibj.simulation.DifferentialDrivetrainSim;
 import edu.wpi.first.wpilibj.simulation.EncoderSim;
@@ -19,49 +18,81 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.DriveConstants;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
+import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
 
-public class Drive extends SubsystemBase {
-	private final MotorControllerGroup m_leftMotors;
-	private final MotorControllerGroup m_rightMotors;
-	private final DifferentialDrive m_drive;
-	private final Encoder m_leftEncoder;
-	private final Encoder m_rightEncoder;
+class DriveSide {
+	public final MotorControllerGroup motors;
+	public final Encoder encoder;
+	public final EncoderSim encoderSim;
+
+	public DriveSide(MotorControllerGroup motors, Encoder encoder) {
+		this.motors = motors;
+		this.encoder = encoder;
+
+		this.encoderSim = RobotBase.isSimulation() ? new EncoderSim(encoder) : null;
+	}
+
+	public MotorControllerGroup getMotors() {
+		return motors;
+	}
+
+	public void invert(boolean isInverted) {
+		motors.setInverted(isInverted);
+	}
+
+	public void configureEncoder(int pulsesPerRev) {
+		encoder.setDistancePerPulse(2 * Math.PI / pulsesPerRev);
+	}
+
+	public EncoderSim getEncoderSim() {
+		return encoderSim;
+	}
+
+	public Encoder getEncoder() {
+		return encoder;
+	}
+
+	public void resetEncoder() {
+		encoder.reset();
+	}
+}
+
+class Gyro {
 	private final ADXRS450_Gyro m_gyro;
-	private final DifferentialDriveOdometry m_odometry;
-
-	public DifferentialDrivetrainSim m_drivetrainSimulator;
-	private final EncoderSim m_leftEncoderSim;
-	private final EncoderSim m_rightEncoderSim;
-	private final Field2d m_fieldSim;
 	private final ADXRS450_GyroSim m_gyroSim;
 
-	public Drive() {
-		m_leftMotors = new MotorControllerGroup(
-				new PWMSparkMax(DriveConstants.kLeftMotor1Port),
-				new PWMSparkMax(DriveConstants.kLeftMotor2Port));
-
-		// The motors on the right side of the drive.
-		m_rightMotors = new MotorControllerGroup(
-				new PWMSparkMax(DriveConstants.kRightMotor1Port),
-				new PWMSparkMax(DriveConstants.kRightMotor2Port));
-
-		m_drive = new DifferentialDrive(m_leftMotors, m_rightMotors);
-
-		m_leftEncoder = new Encoder(0, 1);
-		m_rightEncoder = new Encoder(2, 3);
-
+	public Gyro() {
 		m_gyro = new ADXRS450_Gyro();
+		m_gyroSim = RobotBase.isSimulation() ? new ADXRS450_GyroSim(m_gyro) : null;
+	}
 
-		m_rightMotors.setInverted(true);
-		m_leftEncoder.setDistancePerPulse(2 * Math.PI / 256);
-		m_rightEncoder.setDistancePerPulse(2 * Math.PI / 256);
+	public double getAngle() {
+		return m_gyro.getAngle();
+	}
 
-		resetEncoders();
+	public void reset() {
+		m_gyro.reset();
+	}
 
-		m_odometry = new DifferentialDriveOdometry(
-				Rotation2d.fromDegrees(getHeading()),
-				m_leftEncoder.getDistance(),
-				m_rightEncoder.getDistance());
+	public ADXRS450_GyroSim getGyroSim() {
+		return m_gyroSim;
+	}
+
+	public double getHeading() {
+		return Math.IEEEremainder(m_gyro.getAngle(), 360) * (DriveConstants.kGyroReversed ? -1.0 : 1.0);
+	}
+}
+
+class Drivetrain {
+	private final DriveSide m_left;
+	private final DriveSide m_right;
+	private final DifferentialDrive m_drive;
+	private final DifferentialDrivetrainSim m_drivetrainSimulator;
+
+	public Drivetrain(DriveSide left, DriveSide right) {
+		m_drive = new DifferentialDrive(left.getMotors(), right.getMotors());
+		m_left = left;
+		m_right = right;
 
 		if (RobotBase.isSimulation()) {
 			m_drivetrainSimulator = new DifferentialDrivetrainSim(
@@ -71,64 +102,24 @@ public class Drive extends SubsystemBase {
 					DriveConstants.kTrackwidthMeters,
 					DriveConstants.kWheelDiameterMeters / 2.0,
 					VecBuilder.fill(0, 0, 0.0001, 0.1, 0.1, 0.005, 0.005));
-
-			m_leftEncoderSim = new EncoderSim(m_leftEncoder);
-			m_rightEncoderSim = new EncoderSim(m_rightEncoder);
-			m_gyroSim = new ADXRS450_GyroSim(m_gyro);
-
-			m_fieldSim = new Field2d();
-			SmartDashboard.putData("Field", m_fieldSim);
 		} else {
-			m_leftEncoderSim = null;
-			m_rightEncoderSim = null;
-			m_gyroSim = null;
-			m_fieldSim = null;
+			m_drivetrainSimulator = null;
 		}
 	}
 
-	public Field2d getField() {
-		return m_fieldSim;
-	}
-
-	@Override
-	public void periodic() {
-		m_odometry.update(
-				Rotation2d.fromDegrees(getHeading()),
-				m_leftEncoder.getDistance(),
-				m_rightEncoder.getDistance());
-		m_fieldSim.setRobotPose(getPose());
-	}
-
-	@Override
-	public void simulationPeriodic() {
-		m_drivetrainSimulator.setInputs(
-				m_leftMotors.get() * RobotController.getBatteryVoltage(),
-				m_rightMotors.get() * RobotController.getBatteryVoltage());
-
-		m_drivetrainSimulator.update(0.02);
-
-		m_leftEncoderSim.setDistance(m_drivetrainSimulator.getLeftPositionMeters());
-		m_leftEncoderSim.setRate(m_drivetrainSimulator.getLeftVelocityMetersPerSecond());
-		m_rightEncoderSim.setDistance(m_drivetrainSimulator.getRightPositionMeters());
-		m_rightEncoderSim.setRate(m_drivetrainSimulator.getRightVelocityMetersPerSecond());
-		m_gyroSim.setAngle(-m_drivetrainSimulator.getHeading().getDegrees());
-	}
-
 	public void resetEncoders() {
-		m_leftEncoder.reset();
-		m_rightEncoder.reset();
+		m_left.resetEncoder();
+		m_right.resetEncoder();
 	}
 
-	public double getHeading() {
-		return Math.IEEEremainder(m_gyro.getAngle(), 360) * (DriveConstants.kGyroReversed ? -1.0 : 1.0);
-	}
-
-	public Pose2d getPose() {
-		return m_odometry.getPoseMeters();
-	}
-
-	public void arcadeDrive(double fwd, double rot) {
+	public void setArcadeDrive(double fwd, double rot) {
 		m_drive.arcadeDrive(fwd, rot);
+	}
+
+	public void tankDriveVolts(double leftVolts, double rightVolts) {
+		m_left.getMotors().setVoltage(leftVolts);
+		m_right.getMotors().setVoltage(rightVolts);
+		m_drive.feed();
 	}
 
 	/**
@@ -141,9 +132,123 @@ public class Drive extends SubsystemBase {
 		m_drive.setMaxOutput(maxOutput);
 	}
 
+	public void setSimPose(Pose2d pose) {
+		if (RobotBase.isSimulation()) {
+			m_drivetrainSimulator.setPose(pose);
+		}
+	}
+
+	public double getSimCurrentDrawAmps() {
+		return RobotBase.isSimulation() ? m_drivetrainSimulator.getCurrentDrawAmps() : 0;
+	}
+
+	public void updateSimulation(Gyro m_gyro) {
+		if (!RobotBase.isSimulation()) {
+			return;
+		}
+		double leftVoltage = m_left.getMotors().get();
+		double rightVoltage = m_right.getMotors().get();
+
+		m_drivetrainSimulator.setInputs(
+				leftVoltage * RobotController.getBatteryVoltage(),
+				rightVoltage * RobotController.getBatteryVoltage());
+
+		m_drivetrainSimulator.update(0.02);
+
+		double simulatedLeftPosition = m_drivetrainSimulator.getLeftPositionMeters();
+		double simulatedRightPosition = m_drivetrainSimulator.getRightPositionMeters();
+		double simulatedLeftVelocity = m_drivetrainSimulator.getLeftVelocityMetersPerSecond();
+		double simulatedRightVelocity = m_drivetrainSimulator.getRightVelocityMetersPerSecond();
+
+		m_left.getEncoderSim().setDistance(simulatedLeftPosition);
+		m_right.getEncoderSim().setDistance(simulatedRightPosition);
+		m_left.getEncoderSim().setRate(simulatedLeftVelocity);
+		m_right.getEncoderSim().setRate(simulatedRightVelocity);
+
+		m_gyro.getGyroSim().setAngle(-m_drivetrainSimulator.getHeading().getDegrees());
+	}
+}
+
+public class Drive extends SubsystemBase {
+	private final DriveSide m_leftSide;
+	private final DriveSide m_rightSide;
+
+	private final Drivetrain m_drivetrain;
+	private final DifferentialDriveOdometry m_odometry;
+
+	private final Field2d m_fieldSim;
+	private final Gyro m_gyro1;
+
+	public Drive() {
+		m_leftSide = new DriveSide(
+				new MotorControllerGroup(
+						new WPI_TalonFX(0),
+						new WPI_TalonFX(1)),
+				new Encoder(0, 1));
+
+		m_rightSide = new DriveSide(
+				new MotorControllerGroup(
+						new WPI_TalonFX(2),
+						new WPI_TalonFX(3)),
+				new Encoder(2, 3));
+
+		// Configure Hardware
+		m_leftSide.configureEncoder(256);
+		m_rightSide.configureEncoder(256);
+		m_rightSide.invert(true);
+
+		m_drivetrain = new Drivetrain(m_leftSide, m_rightSide);
+		m_drivetrain.resetEncoders();
+
+		m_gyro1 = new Gyro();
+
+		// TODO: Abstract to RobotState
+		m_odometry = new DifferentialDriveOdometry(
+				Rotation2d.fromDegrees(m_gyro1.getHeading()),
+				m_leftSide.getEncoder().getDistance(),
+				m_rightSide.getEncoder().getDistance());
+
+		if (RobotBase.isSimulation()) {
+			m_fieldSim = new Field2d();
+			SmartDashboard.putData("Field", m_fieldSim);
+		} else {
+			m_fieldSim = null;
+		}
+	}
+
+	public Field2d getField() {
+		return m_fieldSim;
+	}
+
+	@Override
+	public void periodic() {
+		m_odometry.update(
+				Rotation2d.fromDegrees(m_gyro1.getHeading()),
+				m_leftSide.getEncoder().getDistance(),
+				m_rightSide.getEncoder().getDistance());
+		m_fieldSim.setRobotPose(getPose());
+	}
+
+	@Override
+	public void simulationPeriodic() {
+		m_drivetrain.updateSimulation(m_gyro1);
+	}
+
+	public Pose2d getPose() {
+		return m_odometry.getPoseMeters();
+	}
+
+	public void arcadeDrive(double fwd, double rot) {
+		m_drivetrain.setArcadeDrive(fwd, rot);
+	}
+
+	public void setMaxOutput(double maxOutput) {
+		m_drivetrain.setMaxOutput(maxOutput);
+	}
+
 	/** Zeroes the heading of the robot. */
 	public void zeroHeading() {
-		m_gyro.reset();
+		m_gyro1.reset();
 	}
 
 	/**
@@ -152,7 +257,9 @@ public class Drive extends SubsystemBase {
 	 * @return The current wheel speeds.
 	 */
 	public DifferentialDriveWheelSpeeds getWheelSpeeds() {
-		return new DifferentialDriveWheelSpeeds(m_leftEncoder.getRate(), m_rightEncoder.getRate());
+		return new DifferentialDriveWheelSpeeds(
+				m_leftSide.getEncoder().getRate(),
+				m_rightSide.getEncoder().getRate());
 	}
 
 	/**
@@ -162,9 +269,7 @@ public class Drive extends SubsystemBase {
 	 * @param rightVolts the commanded right output
 	 */
 	public void tankDriveVolts(double leftVolts, double rightVolts) {
-		m_leftMotors.setVoltage(leftVolts);
-		m_rightMotors.setVoltage(rightVolts);
-		m_drive.feed();
+		m_drivetrain.tankDriveVolts(leftVolts, rightVolts);
 	}
 
 	/**
@@ -173,12 +278,12 @@ public class Drive extends SubsystemBase {
 	 * @param pose The pose to which to set the odometry.
 	 */
 	public void resetOdometry(Pose2d pose) {
-		resetEncoders();
-		m_drivetrainSimulator.setPose(pose);
+		m_drivetrain.resetEncoders();
+		m_drivetrain.setSimPose(pose);
 		m_odometry.resetPosition(
-				Rotation2d.fromDegrees(getHeading()),
-				m_leftEncoder.getDistance(),
-				m_rightEncoder.getDistance(),
+				Rotation2d.fromDegrees(m_gyro1.getHeading()),
+				m_leftSide.getEncoder().getDistance(),
+				m_rightSide.getEncoder().getDistance(),
 				pose);
 	}
 
@@ -191,7 +296,6 @@ public class Drive extends SubsystemBase {
 	 * @return The drawn current in Amps.
 	 */
 	public double getDrawnCurrentAmps() {
-		return m_drivetrainSimulator.getCurrentDrawAmps();
+		return m_drivetrain.getSimCurrentDrawAmps();
 	}
-
 }
