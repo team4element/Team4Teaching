@@ -1,0 +1,25 @@
+{
+  "name": "Teaching Platform",
+  "image": "ghcr.io/team4element/frc2023:latest",
+  "settings": {
+    "terminal.integrated.shell.linux": "/bin/bash"
+  },
+        // Tell VSCode where to find the workspace directory
+    "workspaceMount": "source=${localWorkspaceFolder},target=/root/workspace,type=bind,consistency=cached",
+    "workspaceFolder": "/root/workspace",
+
+    // Allow the host and container docker daemons to communicate
+    "mounts": [ "source=/var/run/docker.sock,target=/var/run/docker-host.sock,type=bind" ],
+      
+  "features": {
+  },
+    "extensions": [
+        // Needed extensions for using WPILib
+        "redhat.java",
+        "ms-vscode.cpptools",
+        "vscjava.vscode-java-pack",
+
+        // The WPILib extension itself
+        "wpilibsuite.vscode-wpilib"
+      ]
+}
