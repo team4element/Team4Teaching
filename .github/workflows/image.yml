@@ -28,5 +28,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.repository }}:latest
-          
+          tags: ghcr.io/team4element/frc2023:latest
